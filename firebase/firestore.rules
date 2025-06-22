@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Emotion analyses - users can CRUD their own
+    match /emotions/{emotionId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Generated bouquets - users can CRUD their own, read public ones
+    match /bouquets/{bouquetId} {
+      allow read: if resource.data.isPublic == true;
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Flowers data - read only for all authenticated users
+    match /flowers/{flowerId} {
+      allow read: if request.auth != null;
+    }
+    
+    // Public gallery - read only
+    match /gallery/{galleryId} {
+      allow read: if true;
+    }
+  }
+}
