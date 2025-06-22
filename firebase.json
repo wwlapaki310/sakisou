@@ -1,13 +1,13 @@
 {
   "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "firebase/firestore.rules",
+    "indexes": "firebase/firestore.indexes.json"
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "firebase/storage.rules"
   },
   "hosting": {
-    "public": "frontend/build/web",
+    "public": "web/build/web",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -24,8 +24,17 @@
         "source": "**/*.@(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)",
         "headers": [
           {
-            "key": "Cache-Control",
+            "key": "Cache-Control", 
             "value": "max-age=31536000"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(html|json)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0"
           }
         ]
       }
@@ -33,7 +42,10 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs18"
+    "runtime": "nodejs18",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ]
   },
   "emulators": {
     "auth": {
@@ -44,6 +56,9 @@
     },
     "storage": {
       "port": 9199
+    },
+    "functions": {
+      "port": 5001
     },
     "ui": {
       "enabled": true,
