@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="咲想（Sakisou） - あなたの想いをAIが分析し、最適な花言葉を持つ花を推薦して美しい花束を生成します。">
+  
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="咲想">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  
+  <title>咲想 - 想いを花に</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <style>
+    /* Loading screen styles */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #F7F3E9 0%, #F5D7E3 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    
+    .loading-flower {
+      font-size: 4rem;
+      animation: bloom 2s ease-in-out infinite alternate;
+    }
+    
+    .loading-text {
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #2C2C2C;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    
+    .loading-subtext {
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      color: #5A5A5A;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    
+    @keyframes bloom {
+      0% { transform: scale(1) rotate(0deg); }
+      100% { transform: scale(1.1) rotate(5deg); }
+    }
+    
+    /* Hide loading when Flutter is ready */
+    .flutter-ready .loading {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading screen -->
+  <div class="loading" id="loading">
+    <div class="loading-flower">🌸</div>
+    <div class="loading-text">咲想</div>
+    <div class="loading-subtext">想いを花に込めて...</div>
+  </div>
+
+  <!-- Firebase Configuration -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+    
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "your-api-key",
+      authDomain: "sakisou-hackathon.firebaseapp.com",
+      projectId: "sakisou-hackathon",
+      storageBucket: "sakisou-hackathon.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef",
+      measurementId: "G-XXXXXXXXXX"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    
+    // Make Firebase available globally for Flutter
+    window.firebaseConfig = firebaseConfig;
+  </script>
+
+  <script>
+    // Service Worker registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('flutter-first-frame', function () {
+        navigator.serviceWorker.register('flutter_service_worker.js');
+      });
+    }
+    
+    // Hide loading screen when Flutter is ready
+    window.addEventListener('flutter-first-frame', function () {
+      document.body.classList.add('flutter-ready');
+    });
+  </script>
+  
+  <script src="main.dart.js" type="application/javascript"></script>
+</body>
+</html>
