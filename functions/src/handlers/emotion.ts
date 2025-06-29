@@ -8,6 +8,7 @@ import {
   AppError,
 } from "../types";
 import {asyncHandler} from "../middleware/errorHandler";
+import {flowersDatabase} from "../data/flowers";
 import {v4 as uuidv4} from "uuid";
 import {z} from "zod";
 
@@ -50,6 +51,30 @@ export const analyzeEmotionHandler = asyncHandler(
         const emotionId = uuidv4();
         const now = admin.firestore.Timestamp.now();
 
+        // Match recommended flowers with database
+        const recommendedFlowers = geminiResult.flowers.map((f) => {
+          // Find matching flower in database
+          const dbFlower = flowersDatabase.find((flower) => 
+            flower.name === f.name || flower.nameEn === f.nameEn
+          );
+
+          if (dbFlower) {
+            // Use database flower with complete information
+            return dbFlower;
+          } else {
+            // Fallback: create flower object with provided info and default values
+            return {
+              name: f.name,
+              nameEn: f.nameEn,
+              meaning: f.meaning,
+              meaningEn: f.meaning, // Fallback: use same meaning if English not available
+              colors: ["pink"], // Default color
+              season: "all" as const,
+              rarity: "common" as const,
+            };
+          }
+        });
+
         // Prepare emotion analysis data
         const emotionData: EmotionAnalysis = {
           id: emotionId,
@@ -57,15 +82,7 @@ export const analyzeEmotionHandler = asyncHandler(
           inputText: text,
           detectedEmotions: geminiResult.emotions,
           confidence: geminiResult.confidence,
-          recommendedFlowers: geminiResult.flowers.map((f) => ({
-            name: f.name,
-            nameEn: f.nameEn,
-            meaning: f.meaning,
-            meaningEn: f.meaning, // Use same meaning for now
-            colors: ["pink"], // Default color, should be enhanced
-            season: "all" as const,
-            rarity: "common" as const,
-          })),
+          recommendedFlowers,
           language,
           createdAt: now,
         };
@@ -87,7 +104,7 @@ export const analyzeEmotionHandler = asyncHandler(
         const response: AnalyzeEmotionResponse = {
           emotions: geminiResult.emotions,
           confidence: geminiResult.confidence,
-          flowers: emotionData.recommendedFlowers,
+          flowers: recommendedFlowers,
           explanation: geminiResult.explanation,
           emotionId,
         };
