@@ -16,7 +16,7 @@ const GenerateBouquetSchema = z.object({
     name: z.string(),
     nameEn: z.string(),
     meaning: z.string(),
-    meaningEn: z.string().optional(),
+    meaningEn: z.string(), // Changed from optional to required
     colors: z.array(z.string()),
     season: z.enum(["spring", "summer", "autumn", "winter", "all"]),
     rarity: z.enum(["common", "rare", "exotic"]),
