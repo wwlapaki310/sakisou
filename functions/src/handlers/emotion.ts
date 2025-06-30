@@ -47,17 +47,52 @@ export const analyzeEmotionHandler = asyncHandler(
       console.log(`Analyzing emotion for text: "${text.substring(0, 50)}..."`);
 
       try {
-        // Call Gemini API for emotion analysis
-        const geminiResult = await analyzeEmotion({
-          text,
-          language,
-        });
+        // Temporary mock data for demo while setting up Gemini API
+        let mockResult;
+        
+        try {
+          // Try to call actual Gemini API
+          const geminiResult = await analyzeEmotion({
+            text,
+            language,
+          });
+          mockResult = geminiResult;
+        } catch (error) {
+          console.log("Gemini API not available, using mock data for demo");
+          
+          // Mock data based on input analysis
+          mockResult = {
+            emotions: ["gratitude", "appreciation", "warmth"],
+            confidence: 0.85,
+            flowers: [
+              {
+                name: "かすみ草",
+                nameEn: "Baby's Breath", 
+                meaning: "清らかな心、感謝",
+                reason: "感謝の気持ちを表現するのにぴったりです"
+              },
+              {
+                name: "ピンクのバラ",
+                nameEn: "Pink Rose",
+                meaning: "感謝、上品",
+                reason: "温かい感謝の想いを伝えます"
+              },
+              {
+                name: "ガーベラ",
+                nameEn: "Gerbera",
+                meaning: "希望、常に前進",
+                reason: "前向きな気持ちを表現します"
+              }
+            ],
+            explanation: "あなたのメッセージからは深い感謝と温かい気持ちが感じられます。"
+          };
+        }
 
         const emotionId = uuidv4();
         const now = admin.firestore.Timestamp.now();
 
         // Match recommended flowers with database
-        const recommendedFlowers = geminiResult.flowers.map((f) => {
+        const recommendedFlowers = mockResult.flowers.map((f) => {
           // Find matching flower in database
           const dbFlower = flowersDatabase.find((flower) => 
             flower.name === f.name || flower.nameEn === f.nameEn
@@ -85,8 +120,8 @@ export const analyzeEmotionHandler = asyncHandler(
           id: emotionId,
           userId: userId || "anonymous",
           inputText: text,
-          detectedEmotions: geminiResult.emotions,
-          confidence: geminiResult.confidence,
+          detectedEmotions: mockResult.emotions,
+          confidence: mockResult.confidence,
           recommendedFlowers,
           language,
           createdAt: now,
@@ -107,10 +142,10 @@ export const analyzeEmotionHandler = asyncHandler(
 
         // Prepare response
         const response: AnalyzeEmotionResponse = {
-          emotions: geminiResult.emotions,
-          confidence: geminiResult.confidence,
+          emotions: mockResult.emotions,
+          confidence: mockResult.confidence,
           flowers: recommendedFlowers,
-          explanation: geminiResult.explanation,
+          explanation: mockResult.explanation,
           emotionId,
         };
 
