@@ -68,32 +68,32 @@ graph TD
 ```mermaid
 graph TB
     subgraph "ユーザー"
-        User[🙋‍♀️ ユーザー]
+        User[👤 ユーザー]
     end
     
     subgraph "フロントエンド"
-        Web[🌐 Webアプリ<br/>HTML/CSS/JavaScript]
+        Web[🌐 Webアプリ]
         UI[💻 ユーザーインターフェース]
     end
     
     subgraph "Google Cloud Platform"
         subgraph "Cloud Run functions"
-            API[⚡ Firebase Functions<br/>Express API]
+            API[⚡ Firebase Functions]
         end
         
         subgraph "Vertex AI"
-            Gemini[🤖 Gemini API<br/>感情分析エンジン]
+            Gemini[🤖 Gemini API]
             NLP[📝 自然言語処理]
         end
         
         subgraph "Firebase Services"
-            Firestore[🗄️ Firestore<br/>花言葉データベース]
+            Firestore[🗄️ Firestore]
             Hosting[🌍 Firebase Hosting]
         end
     end
     
     subgraph "外部API"
-        Images[🖼️ 画像サービス<br/>Unsplash]
+        Images[🖼️ 画像サービス]
     end
     
     User --> Web
@@ -104,14 +104,6 @@ graph TB
     API --> Firestore
     API --> Images
     Hosting --> Web
-    
-    classDef googleCloud fill:#4285f4,stroke:#1a73e8,color:#fff
-    classDef ai fill:#34a853,stroke:#137333,color:#fff
-    classDef frontend fill:#ff9800,stroke:#f57c00,color:#fff
-    
-    class API,Firestore,Hosting googleCloud
-    class Gemini,NLP ai
-    class Web,UI frontend
 ```
 
 ### Google Cloud技術スタック詳細
@@ -146,8 +138,8 @@ sequenceDiagram
     F-->>W: 9. 総合結果レスポンス
     W-->>U: 10. 花束と花言葉表示
     
-    Note over G: Vertex AI による<br/>高精度感情分析
-    Note over F: Cloud Run functions<br/>サーバーレス処理
+    Note over G: Vertex AI による高精度感情分析
+    Note over F: Cloud Run functions サーバーレス処理
 ```
 
 ---
@@ -200,9 +192,9 @@ graph LR
     end
     
     subgraph "実装されたAPI"
-        E[/api/analyze-emotion] --> F[感情分析処理]
-        G[/api/generate-bouquet] --> H[花束生成処理]
-        I[/health] --> J[ヘルスチェック]
+        E[感情分析API] --> F[感情分析処理]
+        G[花束生成API] --> H[花束生成処理]
+        I[ヘルスチェックAPI] --> J[システム状態確認]
     end
 ```
 
