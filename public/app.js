@@ -2,16 +2,32 @@
 
 // ===== Configuration =====
 const CONFIG = {
-  // Firebase Functions エンドポイント（開発環境）
-  API_BASE_URL: 'http://localhost:5001/sakisou-dev/us-central1/api',
-  // 本番環境用（必要に応じて変更）
-  // API_BASE_URL: 'https://us-central1-sakisou-dev.cloudfunctions.net/api',
+  // API Base URL - 自動的に環境を検出
+  get API_BASE_URL() {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // 開発環境
+      return 'http://localhost:5001/sakisou-dev/us-central1/api';
+    } else {
+      // 本番環境
+      return 'https://us-central1-sakisou-dev.cloudfunctions.net/api';
+    }
+  },
   
   // UI設定
   MAX_CHARS: 500,
   TYPING_SPEED: 50,
-  ANIMATION_DELAY: 300
+  ANIMATION_DELAY: 300,
+  
+  // デバッグモード
+  DEBUG: window.location.hostname === 'localhost'
 };
+
+// デバッグログ関数
+function debugLog(...args) {
+  if (CONFIG.DEBUG) {
+    console.log('🌸 Sakisou Debug:', ...args);
+  }
+}
 
 // ===== DOM Elements =====
 const elements = {
@@ -41,33 +57,46 @@ const elements = {
 let currentState = {
   isLoading: false,
   lastAnalysis: null,
-  lastBouquet: null
+  lastBouquet: null,
+  lastMessage: ''
 };
 
 // ===== Utility Functions =====
 function showSection(sectionName) {
-  Object.values(elements).forEach(el => {
-    if (el && el.style) {
-      if (el.id.includes('section')) {
-        el.style.display = 'none';
+  // すべてのセクションを非表示
+  Object.keys(elements).forEach(key => {
+    if (key.includes('Section')) {
+      const element = elements[key];
+      if (element) {
+        element.style.display = 'none';
+        element.classList.remove('fade-in');
       }
     }
   });
   
+  // 指定されたセクションを表示
   const targetSection = elements[sectionName + 'Section'];
   if (targetSection) {
     targetSection.style.display = 'block';
-    targetSection.classList.add('fade-in');
+    setTimeout(() => {
+      targetSection.classList.add('fade-in');
+    }, 10);
   }
+  
+  debugLog(`Section changed to: ${sectionName}`);
 }
 
 function updateCharCount() {
+  if (!elements.messageInput || !elements.charCount) return;
+  
   const count = elements.messageInput.value.length;
   elements.charCount.textContent = count;
   
   if (count > CONFIG.MAX_CHARS) {
     elements.charCount.style.color = 'var(--love-red)';
     elements.messageInput.value = elements.messageInput.value.substring(0, CONFIG.MAX_CHARS);
+  } else if (count > CONFIG.MAX_CHARS * 0.8) {
+    elements.charCount.style.color = 'var(--hope-orange)';
   } else {
     elements.charCount.style.color = 'var(--text-light)';
   }
@@ -75,71 +104,106 @@ function updateCharCount() {
 
 function setLoading(isLoading) {
   currentState.isLoading = isLoading;
-  elements.generateBtn.disabled = isLoading;
   
-  if (isLoading) {
-    elements.generateBtn.querySelector('.btn-text').textContent = '変換中...';
-  } else {
-    elements.generateBtn.querySelector('.btn-text').textContent = '想いを花に変換';
+  if (elements.generateBtn) {
+    elements.generateBtn.disabled = isLoading;
+    const btnText = elements.generateBtn.querySelector('.btn-text');
+    if (btnText) {
+      btnText.textContent = isLoading ? '変換中...' : '想いを花に変換';
+    }
   }
+  
+  debugLog(`Loading state: ${isLoading}`);
+}
+
+function showNotification(message, type = 'info') {
+  // 簡単な通知システム
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--sakura-pink);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px var(--shadow);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
 }
 
 // ===== API Functions =====
-async function analyzeEmotion(message) {
+async function apiRequest(endpoint, data = null, options = {}) {
+  const url = CONFIG.API_BASE_URL + endpoint;
+  
+  const defaultOptions = {
+    method: data ? 'POST' : 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    ...options
+  };
+  
+  if (data) {
+    defaultOptions.body = JSON.stringify(data);
+  }
+  
+  debugLog(`API Request: ${defaultOptions.method} ${url}`, data);
+  
   try {
-    console.log('Sending emotion analysis request...');
-    const response = await fetch(`${CONFIG.API_BASE_URL}/analyze-emotion`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message })
-    });
+    const response = await fetch(url, defaultOptions);
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log('Emotion analysis response:', data);
-    return data;
+    const responseData = await response.json();
+    debugLog(`API Response:`, responseData);
+    return responseData;
+    
   } catch (error) {
-    console.error('Error analyzing emotion:', error);
+    debugLog(`API Error:`, error);
     throw error;
   }
 }
 
+async function analyzeEmotion(message) {
+  return await apiRequest('/api/analyze-emotion', { message });
+}
+
 async function generateBouquet(flowers, style = 'realistic') {
+  return await apiRequest('/api/generate-bouquet', { flowers, style });
+}
+
+async function checkAPIHealth() {
   try {
-    console.log('Sending bouquet generation request...');
-    const response = await fetch(`${CONFIG.API_BASE_URL}/generate-bouquet`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ flowers, style })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Bouquet generation response:', data);
-    return data;
+    const health = await apiRequest('/health');
+    debugLog('API Health:', health);
+    return health.status === 'healthy';
   } catch (error) {
-    console.error('Error generating bouquet:', error);
-    throw error;
+    debugLog('API Health Check Failed:', error);
+    return false;
   }
 }
 
 // ===== UI Update Functions =====
 function displayEmotionAnalysis(analysis) {
-  // Clear previous content
-  elements.emotionsList.innerHTML = '';
+  if (!analysis) return;
   
-  // Display emotions
-  if (analysis.emotions && analysis.emotions.length > 0) {
+  // 感情タグを表示
+  if (elements.emotionsList && analysis.emotions) {
+    elements.emotionsList.innerHTML = '';
+    
     analysis.emotions.forEach(emotion => {
       const emotionTag = document.createElement('span');
       emotionTag.className = `emotion-tag ${emotion}`;
@@ -148,85 +212,105 @@ function displayEmotionAnalysis(analysis) {
     });
   }
   
-  // Display explanation
-  if (analysis.explanation) {
+  // 説明文を表示
+  if (elements.emotionExplanation && analysis.explanation) {
     elements.emotionExplanation.textContent = analysis.explanation;
   }
 }
 
 function displayFlowers(flowers) {
-  // Clear previous content
+  if (!elements.flowersGrid || !flowers) return;
+  
   elements.flowersGrid.innerHTML = '';
   
-  if (flowers && flowers.length > 0) {
-    flowers.forEach((flower, index) => {
-      const flowerCard = document.createElement('div');
-      flowerCard.className = 'flower-card';
-      flowerCard.style.animationDelay = `${index * 0.1}s`;
+  flowers.forEach((flower, index) => {
+    const flowerCard = document.createElement('div');
+    flowerCard.className = 'flower-card';
+    flowerCard.style.animationDelay = `${index * 0.1}s`;
+    
+    flowerCard.innerHTML = `
+      <div class="flower-name">${flower.name} (${flower.nameEn})</div>
+      <div class="flower-meaning">💝 ${flower.meaning}</div>
+      <div class="flower-reason">✨ ${flower.reason}</div>
+    `;
+    
+    elements.flowersGrid.appendChild(flowerCard);
+    
+    // アニメーション追加
+    setTimeout(() => {
       flowerCard.classList.add('bounce-in');
-      
-      flowerCard.innerHTML = `
-        <div class="flower-name">${flower.name}</div>
-        <div class="flower-meaning">${flower.meaning}</div>
-        <div class="flower-reason">${flower.reason}</div>
-      `;
-      
-      elements.flowersGrid.appendChild(flowerCard);
-    });
-  }
+    }, index * 100);
+  });
 }
 
 function displayBouquet(bouquet) {
-  if (bouquet && bouquet.imageUrl) {
-    elements.bouquetImage.src = bouquet.imageUrl;
-    elements.bouquetImage.alt = '生成された花束';
-  }
+  if (!elements.bouquetImage || !bouquet) return;
+  
+  elements.bouquetImage.src = bouquet.imageUrl;
+  elements.bouquetImage.alt = '生成された花束';
+  
+  // 画像読み込み完了時のエフェクト
+  elements.bouquetImage.onload = () => {
+    elements.bouquetImage.classList.add('fade-in');
+    showNotification('美しい花束が完成しました！', 'success');
+  };
+  
+  elements.bouquetImage.onerror = () => {
+    elements.bouquetImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjVEN0UzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDQ5OUI5IiBmb250LXNpemU9IjE4Ij7lm7Tlg4/jgYzlh7rjgaPjgb7jgZvjgpPjgafjgZfjgZ88L3RleHQ+Cjx0ZXh0IHg9IjIwMCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDQ5OUI5IiBmb250LXNpemU9IjI0Ij7wn4yYPC90ZXh0Pgo8L3N2Zz4K';
+    showNotification('画像の読み込みに失敗しました', 'error');
+  };
 }
 
 function getEmotionDisplayName(emotion) {
   const emotionMap = {
     'gratitude': '感謝',
-    'appreciation': '感謝',
+    'appreciation': '感謝', 
     'warmth': '温かさ',
     'love': '愛情',
     'apology': '謝罪',
+    'regret': '後悔',
+    'sincerity': '真摯',
     'hope': '希望',
     'sadness': '悲しみ',
     'joy': '喜び',
     'excitement': '興奮',
-    'nostalgia': '懐かしさ'
+    'nostalgia': '懐かしさ',
+    'encouragement': '応援',
+    'support': '支援'
   };
   return emotionMap[emotion] || emotion;
 }
 
 // ===== Main Process Function =====
 async function processMessage() {
-  const message = elements.messageInput.value.trim();
+  const message = elements.messageInput?.value?.trim();
   
   if (!message) {
-    alert('メッセージを入力してください');
+    showNotification('メッセージを入力してください', 'warning');
+    elements.messageInput?.focus();
     return;
   }
   
   if (message.length > CONFIG.MAX_CHARS) {
-    alert(`メッセージは${CONFIG.MAX_CHARS}文字以下で入力してください`);
+    showNotification(`メッセージは${CONFIG.MAX_CHARS}文字以下で入力してください`, 'warning');
     return;
   }
   
   try {
     setLoading(true);
     showSection('loading');
+    currentState.lastMessage = message;
     
     // Step 1: 感情分析
-    console.log('Starting emotion analysis...');
+    debugLog('Starting emotion analysis...');
     const emotionAnalysis = await analyzeEmotion(message);
     currentState.lastAnalysis = emotionAnalysis;
     
     // ローディングアニメーションのために少し待つ
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     // Step 2: 花束生成
-    console.log('Starting bouquet generation...');
+    debugLog('Starting bouquet generation...');
     const bouquet = await generateBouquet(emotionAnalysis.flowers);
     currentState.lastBouquet = bouquet;
     
@@ -242,15 +326,29 @@ async function processMessage() {
     
     let errorText = '申し訳ございません。想いを花に変換できませんでした。';
     
-    // エラーの種類に応じてメッセージを変更
-    if (error.message.includes('Failed to fetch')) {
-      errorText = 'サーバーに接続できませんでした。<br>Firebase Emulatorが起動しているか確認してください。';
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      if (CONFIG.DEBUG) {
+        errorText = `
+          Firebase Emulatorに接続できませんでした。<br><br>
+          <strong>解決方法:</strong><br>
+          1. ターミナルで <code>firebase emulators:start</code> を実行<br>
+          2. <a href="http://localhost:5001" target="_blank">http://localhost:5001</a> でFunctions確認<br>
+          3. ページをリロード
+        `;
+      } else {
+        errorText = 'サーバーに接続できませんでした。<br>しばらく時間をおいて再度お試しください。';
+      }
     } else if (error.message.includes('500')) {
-      errorText = 'サーバーエラーが発生しました。<br>しばらく時間をおいて再度お試しください。';
+      errorText = 'サーバーでエラーが発生しました。<br>しばらく時間をおいて再度お試しください。';
+    } else if (error.message.includes('400')) {
+      errorText = '入力内容に問題があります。<br>メッセージを確認して再度お試しください。';
     }
     
-    elements.errorMessage.innerHTML = errorText;
+    if (elements.errorMessage) {
+      elements.errorMessage.innerHTML = errorText;
+    }
     showSection('error');
+    
   } finally {
     setLoading(false);
   }
@@ -259,21 +357,26 @@ async function processMessage() {
 // ===== Event Listeners =====
 function initializeEventListeners() {
   // Message input events
-  elements.messageInput.addEventListener('input', updateCharCount);
-  elements.messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      processMessage();
-    }
-  });
+  if (elements.messageInput) {
+    elements.messageInput.addEventListener('input', updateCharCount);
+    elements.messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        processMessage();
+      }
+    });
+  }
   
   // Generate button
-  elements.generateBtn.addEventListener('click', processMessage);
+  if (elements.generateBtn) {
+    elements.generateBtn.addEventListener('click', processMessage);
+  }
   
   // Example tags
   document.querySelectorAll('.example-tag').forEach(tag => {
     tag.addEventListener('click', () => {
       const exampleText = tag.getAttribute('data-text');
-      if (exampleText) {
+      if (exampleText && elements.messageInput) {
         elements.messageInput.value = exampleText;
         updateCharCount();
         
@@ -282,59 +385,78 @@ function initializeEventListeners() {
         setTimeout(() => {
           elements.messageInput.style.background = '';
         }, 500);
+        
+        showNotification('例文を入力しました', 'info');
       }
     });
   });
   
   // Navigation buttons
-  elements.backBtn.addEventListener('click', () => {
-    showSection('input');
-    elements.messageInput.focus();
-  });
+  if (elements.backBtn) {
+    elements.backBtn.addEventListener('click', () => {
+      showSection('input');
+      elements.messageInput?.focus();
+    });
+  }
   
-  elements.retryBtn.addEventListener('click', () => {
-    showSection('input');
-    elements.messageInput.focus();
-  });
+  if (elements.retryBtn) {
+    elements.retryBtn.addEventListener('click', () => {
+      showSection('input');
+      elements.messageInput?.focus();
+    });
+  }
   
   // Action buttons
-  elements.shareBtn.addEventListener('click', () => {
-    if (navigator.share && currentState.lastBouquet) {
-      navigator.share({
-        title: '🌸 咲想 - 想いを花に',
-        text: '私の想いが美しい花束になりました',
-        url: window.location.href
-      }).catch(console.error);
-    } else {
-      // フォールバック: URLをコピー
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        alert('リンクをコピーしました！');
-      }).catch(() => {
-        alert('シェア機能はこのブラウザではサポートされていません');
-      });
-    }
-  });
+  if (elements.shareBtn) {
+    elements.shareBtn.addEventListener('click', async () => {
+      try {
+        if (navigator.share && currentState.lastBouquet) {
+          await navigator.share({
+            title: '🌸 咲想 - 想いを花に',
+            text: '私の想いが美しい花束になりました！',
+            url: window.location.href
+          });
+        } else {
+          // フォールバック: URLをコピー
+          await navigator.clipboard.writeText(window.location.href);
+          showNotification('リンクをコピーしました！', 'success');
+        }
+      } catch (error) {
+        debugLog('Share error:', error);
+        showNotification('シェアできませんでした', 'error');
+      }
+    });
+  }
   
-  elements.regenerateBtn.addEventListener('click', () => {
-    if (currentState.lastAnalysis) {
-      processMessage();
-    }
-  });
+  if (elements.regenerateBtn) {
+    elements.regenerateBtn.addEventListener('click', () => {
+      if (currentState.lastMessage) {
+        processMessage();
+      } else {
+        showSection('input');
+        elements.messageInput?.focus();
+      }
+    });
+  }
   
-  elements.saveBtn.addEventListener('click', () => {
-    if (currentState.lastBouquet) {
-      // 画像をダウンロード
-      const link = document.createElement('a');
-      link.href = currentState.lastBouquet.imageUrl;
-      link.download = 'sakisou-bouquet.jpg';
-      link.click();
-    }
-  });
+  if (elements.saveBtn) {
+    elements.saveBtn.addEventListener('click', () => {
+      if (currentState.lastBouquet) {
+        const link = document.createElement('a');
+        link.href = currentState.lastBouquet.imageUrl;
+        link.download = `sakisou-bouquet-${Date.now()}.jpg`;
+        link.target = '_blank';
+        link.click();
+        showNotification('画像を保存しました', 'success');
+      }
+    });
+  }
 }
 
 // ===== Utility Functions for UI =====
 function showAbout() {
-  alert(`🌸 咲想（sakisou）について
+  const aboutText = `
+🌸 咲想（sakisou）について
 
 想いを咲かせる、花と共に。
 
@@ -343,30 +465,22 @@ function showAbout() {
 美しい花束の画像を生成します。
 
 技術スタック:
-- Google Cloud Gemini API（感情分析）
-- Vertex AI（画像生成）
-- Firebase Functions（バックエンド）
-- Firebase Hosting（ホスティング）
+• Gemini API（感情分析）
+• Vertex AI（画像生成）
+• Firebase Functions（バックエンド）
+• Firebase Hosting（ホスティング）
 
-AI Agent Hackathon with Google Cloud にて開発`);
-}
-
-// ===== Health Check Function =====
-async function checkAPIHealth() {
-  try {
-    const response = await fetch(`${CONFIG.API_BASE_URL}/health`);
-    const data = await response.json();
-    console.log('API Health Check:', data);
-    return data.status === 'healthy';
-  } catch (error) {
-    console.error('API Health Check Failed:', error);
-    return false;
-  }
+AI Agent Hackathon with Google Cloud にて開発
+  `.trim();
+  
+  alert(aboutText);
 }
 
 // ===== Initialization =====
 async function initialize() {
-  console.log('🌸 咲想（sakisou） - Initializing...');
+  debugLog('🌸 咲想（sakisou） - Initializing...');
+  debugLog('Environment:', CONFIG.DEBUG ? 'Development' : 'Production');
+  debugLog('API Base URL:', CONFIG.API_BASE_URL);
   
   // Initialize event listeners
   initializeEventListeners();
@@ -378,35 +492,72 @@ async function initialize() {
   showSection('input');
   
   // Focus on input
-  elements.messageInput.focus();
+  elements.messageInput?.focus();
   
   // Health check
+  debugLog('Performing health check...');
   const isHealthy = await checkAPIHealth();
+  
   if (!isHealthy) {
-    console.warn('⚠️ API health check failed. Firebase Emulator may not be running.');
-    elements.errorMessage.innerHTML = `
-      Firebase Emulatorが起動していないようです。<br>
-      <code>firebase emulators:start</code> を実行してください。
-    `;
-    showSection('error');
+    console.warn('⚠️ API health check failed');
+    
+    if (CONFIG.DEBUG) {
+      elements.errorMessage.innerHTML = `
+        <strong>開発環境でのエラー</strong><br><br>
+        Firebase Emulatorが起動していないようです。<br><br>
+        <strong>解決手順:</strong><br>
+        1. ターミナルで <code>firebase emulators:start</code> を実行<br>
+        2. <a href="http://localhost:4000" target="_blank">Emulator UI</a> で確認<br>
+        3. このページをリロード
+      `;
+      showSection('error');
+    } else {
+      showNotification('サーバーに接続できません。後ほど再度お試しください。', 'warning');
+    }
   } else {
-    console.log('✅ API is healthy');
+    debugLog('✅ API is healthy');
+    showNotification('咲想へようこそ！想いを花に変換しましょう🌸', 'success');
   }
   
-  console.log('🌸 咲想（sakisou） - Ready!');
+  debugLog('🌸 咲想（sakisou） - Ready!');
 }
 
-// ===== Start the application =====
-document.addEventListener('DOMContentLoaded', initialize);
-
-// ===== Global error handler =====
+// ===== Global Error Handlers =====
 window.addEventListener('error', (e) => {
   console.error('Global error:', e.error);
+  if (CONFIG.DEBUG) {
+    showNotification(`エラー: ${e.error?.message || 'Unknown error'}`, 'error');
+  }
 });
 
 window.addEventListener('unhandledrejection', (e) => {
   console.error('Unhandled promise rejection:', e.reason);
+  if (CONFIG.DEBUG) {
+    showNotification(`Promise rejection: ${e.reason?.message || 'Unknown error'}`, 'error');
+  }
 });
+
+// ===== Start the application =====
+document.addEventListener('DOMContentLoaded', initialize);
+
+// ===== Add CSS for notifications =====
+const notificationStyles = document.createElement('style');
+notificationStyles.textContent = `
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.notification {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.notification-success { background: var(--sage-green) !important; }
+.notification-warning { background: var(--hope-orange) !important; }
+.notification-error { background: var(--love-red) !important; }
+.notification-info { background: var(--sakura-pink) !important; }
+`;
+document.head.appendChild(notificationStyles);
 
 // ===== Export for debugging =====
 if (typeof window !== 'undefined') {
@@ -414,7 +565,11 @@ if (typeof window !== 'undefined') {
     config: CONFIG,
     state: currentState,
     elements,
-    processMessage,
-    checkAPIHealth
+    functions: {
+      processMessage,
+      checkAPIHealth,
+      showSection,
+      showNotification
+    }
   };
 }
