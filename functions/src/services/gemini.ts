@@ -2,19 +2,32 @@ import {VertexAI} from "@google-cloud/vertexai";
 import {GeminiEmotionPrompt, GeminiEmotionResponse, Flower} from "../types";
 import {AppError} from "../types";
 import {flowersDatabase} from "../data/flowers";
+import * as path from "path";
 
-const PROJECT_ID = process.env.GCLOUD_PROJECT || "sakisou-dev";
+const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "sakisou-hackathon";
 const LOCATION = process.env.GEMINI_LOCATION || "us-central1";
 const MODEL_NAME = process.env.GEMINI_MODEL_NAME || "gemini-1.5-flash";
 
-const vertexAI = new VertexAI({
-  project: PROJECT_ID,
-  location: LOCATION,
-});
+// Initialize Vertex AI with service account
+const initVertexAI = () => {
+  try {
+    // Set the service account key path
+    const keyPath = path.join(__dirname, "../serviceAccountKey.json");
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = keyPath;
 
-const model = vertexAI.getGenerativeModel({
-  model: MODEL_NAME,
-});
+    const vertexAI = new VertexAI({
+      project: PROJECT_ID,
+      location: LOCATION,
+    });
+
+    return vertexAI.getGenerativeModel({
+      model: MODEL_NAME,
+    });
+  } catch (error) {
+    console.error("Failed to initialize Vertex AI:", error);
+    throw error;
+  }
+};
 
 /**
  * Analyze emotion from text and recommend flowers using Gemini API
@@ -23,7 +36,10 @@ export async function analyzeEmotion(
     request: GeminiEmotionPrompt
 ): Promise<GeminiEmotionResponse> {
   try {
+    const model = initVertexAI();
     const prompt = createEmotionAnalysisPrompt(request.text, request.language);
+
+    console.log("Calling Gemini API with prompt:", prompt.substring(0, 100) + "...");
 
     const result = await model.generateContent({
       contents: [{role: "user", parts: [{text: prompt}]}],
@@ -46,6 +62,8 @@ export async function analyzeEmotion(
       );
     }
 
+    console.log("Gemini API response received:", text.substring(0, 200) + "...");
+
     return parseGeminiResponse(text, request.language);
   } catch (error) {
     console.error("Error in Gemini emotion analysis:", error);
@@ -53,7 +71,7 @@ export async function analyzeEmotion(
       throw error;
     }
     throw new AppError(
-        "Failed to analyze emotion",
+        "Failed to analyze emotion with Gemini API",
         "GEMINI_ANALYSIS_ERROR",
         500,
         error
@@ -143,8 +161,8 @@ function parseGeminiResponse(
 ): GeminiEmotionResponse {
   try {
     // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) ||
-                     text.match(/{[\s\S]*}/);
+    const jsonMatch = text.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/) ||
+                     text.match(/{[\\s\\S]*}/);
 
     if (!jsonMatch) {
       throw new Error("No JSON found in response");
