@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌸 咲想（sakisou） - 想いを花に</title>
-    <meta name="description" content="あなたの想いをAIが読み取り、花言葉を持つ美しい花束に変換します">
+    <title>🌸 咲想（sakisou） - AIが花言葉で紡ぐ、想いを花束で届けるWebアプリ</title>
+    <meta name="description" content="あなたの想いをGoogle Cloud AIが読み取り、花言葉を持つ美しい花束に変換し、実際に購入できるWebアプリ">
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
@@ -36,7 +36,12 @@
                 <h1 class="logo-text">咲想</h1>
                 <span class="logo-subtitle">sakisou</span>
             </div>
-            <p class="tagline">想いを咲かせる、花と共に</p>
+            <p class="tagline">AIが花言葉で紡ぐ、想いを花束で届ける</p>
+            <div class="tech-badges">
+                <span class="tech-badge">🤖 Vertex AI Gemini</span>
+                <span class="tech-badge">☁️ Google Cloud</span>
+                <span class="tech-badge">🌸 花言葉AI</span>
+            </div>
         </header>
 
         <!-- Main Content -->
@@ -46,14 +51,14 @@
                 <div class="input-container">
                     <h2 class="section-title">あなたの想いを聞かせてください</h2>
                     <p class="section-description">
-                        AIがあなたの気持ちを読み取り、<br>
-                        最適な花言葉を持つ花束を生成します
+                        Google Cloud AIがあなたの気持ちを読み取り、<br>
+                        最適な花言葉を持つ花束を生成し、実際に購入できます
                     </p>
                     
                     <div class="textarea-container">
                         <textarea 
                             id="message-input" 
-                            placeholder="例：&#10;・ありがとう、支えてくれて&#10;・頑張って、応援しています&#10;・ごめんなさい、反省しています&#10;・お疲れさまでした"
+                            placeholder="例：&#10;・いつも支えてくれて、本当にありがとう&#10;・新しい挑戦、応援してるよ！&#10;・ごめんなさい、心から反省しています&#10;・お疲れさまでした、ゆっくり休んでね"
                             rows="5"
                         ></textarea>
                         <div class="char-count">
@@ -62,20 +67,24 @@
                     </div>
                     
                     <button class="generate-btn" id="generate-btn">
-                        <span class="btn-icon">🌸</span>
-                        <span class="btn-text">想いを花に変換</span>
+                        <span class="btn-icon">🤖</span>
+                        <span class="btn-text">AIで想いを花束に変換</span>
                         <div class="btn-ripple"></div>
                     </button>
                     
                     <div class="examples">
-                        <p class="examples-title">💡 こんな想いを花に変換できます</p>
+                        <p class="examples-title">💡 こんな想いを花束に変換できます</p>
                         <div class="example-tags">
-                            <span class="example-tag" data-text="長い間支えてくれて、本当にありがとう">感謝</span>
-                            <span class="example-tag" data-text="頑張って！あなたなら必ずできる">応援</span>
-                            <span class="example-tag" data-text="ごめんなさい、心から反省しています">謝罪</span>
-                            <span class="example-tag" data-text="あなたに出会えて良かった">愛情</span>
-                            <span class="example-tag" data-text="お疲れさまでした">労い</span>
+                            <span class="example-tag" data-text="長い間支えてくれて、本当にありがとう。あなたがいるから頑張れます">💝 感謝</span>
+                            <span class="example-tag" data-text="新しい挑戦、応援してるよ！君ならきっとできる">🌻 応援</span>
+                            <span class="example-tag" data-text="ごめんなさい、心から反省しています。許してください">🤍 謝罪</span>
+                            <span class="example-tag" data-text="あなたに出会えて良かった。いつも幸せをありがとう">💖 愛情</span>
+                            <span class="example-tag" data-text="お疲れさまでした。いつもありがとうございます">🌿 労い</span>
                         </div>
+                    </div>
+                    
+                    <div class="demo-notice">
+                        🎬 <strong>デモ動画撮影用</strong> - Google Cloud AI が実際に動作します
                     </div>
                 </div>
             </section>
@@ -91,20 +100,28 @@
                         <div class="petal petal-5"></div>
                         <div class="center"></div>
                     </div>
-                    <h3 class="loading-title">想いを花に変換しています</h3>
-                    <p class="loading-subtitle">AIがあなたの気持ちを分析中...</p>
+                    <h3 class="loading-title">Google Cloud AIが想いを分析中</h3>
+                    <p class="loading-subtitle">Vertex AI Geminiがあなたの気持ちを読み解いています...</p>
                     <div class="loading-steps">
-                        <div class="step step-1">
+                        <div class="step step-1" id="step-1">
                             <span class="step-icon">🧠</span>
-                            <span class="step-text">感情を分析</span>
+                            <span class="step-text">Vertex AI感情分析</span>
+                            <div class="step-progress"></div>
                         </div>
-                        <div class="step step-2">
+                        <div class="step step-2" id="step-2">
                             <span class="step-icon">🌸</span>
-                            <span class="step-text">花言葉をマッチング</span>
+                            <span class="step-text">花言葉マッチング</span>
+                            <div class="step-progress"></div>
                         </div>
-                        <div class="step step-3">
+                        <div class="step step-3" id="step-3">
                             <span class="step-icon">🎨</span>
-                            <span class="step-text">花束を生成</span>
+                            <span class="step-text">花束画像生成</span>
+                            <div class="step-progress"></div>
+                        </div>
+                        <div class="step step-4" id="step-4">
+                            <span class="step-icon">🛒</span>
+                            <span class="step-text">購入リンク生成</span>
+                            <div class="step-progress"></div>
                         </div>
                     </div>
                 </div>
@@ -117,31 +134,99 @@
                         <span>← 新しい想いを入力</span>
                     </button>
                     
-                    <h2 class="result-title">あなたの想いが花に咲きました</h2>
+                    <div class="result-header">
+                        <h2 class="result-title">🌸 あなたの想いが花束に咲きました</h2>
+                        <div class="ai-badge">
+                            <span class="badge-icon">🤖</span>
+                            <span>Powered by Google Cloud AI</span>
+                        </div>
+                    </div>
                     
                     <div class="result-content">
                         <!-- Emotion Analysis -->
-                        <div class="emotion-analysis">
-                            <h3>💭 分析された感情</h3>
+                        <div class="emotion-analysis card">
+                            <h3>💭 AI感情分析結果</h3>
                             <div class="emotions-list" id="emotions-list"></div>
                             <p class="emotion-explanation" id="emotion-explanation"></p>
+                            <div class="confidence-meter">
+                                <span>信頼度</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="confidence-fill"></div>
+                                </div>
+                                <span id="confidence-score">85%</span>
+                            </div>
                         </div>
 
                         <!-- Selected Flowers -->
-                        <div class="flowers-section">
-                            <h3>🌸 選ばれた花たち</h3>
+                        <div class="flowers-section card">
+                            <h3>🌸 AIが選んだ花たち</h3>
                             <div class="flowers-grid" id="flowers-grid"></div>
                         </div>
 
                         <!-- Generated Bouquet -->
-                        <div class="bouquet-section">
+                        <div class="bouquet-section card">
                             <h3>🎨 生成された花束</h3>
                             <div class="bouquet-container">
                                 <img id="bouquet-image" class="bouquet-image" alt="生成された花束">
                                 <div class="bouquet-overlay">
-                                    <button class="share-btn" id="share-btn">
-                                        <span>📱</span> シェアする
+                                    <div class="bouquet-info">
+                                        <h4 id="bouquet-title">感謝の花束</h4>
+                                        <p id="bouquet-description">あなたの想いを込めた特別な花束</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Purchase Section -->
+                        <div class="purchase-section card">
+                            <h3>🛒 この花束を大切な人へ</h3>
+                            <div class="purchase-options">
+                                <div class="purchase-option recommended">
+                                    <div class="option-badge">おすすめ</div>
+                                    <div class="option-image">💐</div>
+                                    <h4>スタンダード花束</h4>
+                                    <p class="price">¥3,500</p>
+                                    <ul class="features">
+                                        <li>✅ 花言葉カード付き</li>
+                                        <li>✅ ギフト包装</li>
+                                        <li>✅ 翌日配送可能</li>
+                                    </ul>
+                                    <button class="purchase-btn" onclick="purchaseBouquet('standard')">
+                                        <span>🛒</span> 注文する
                                     </button>
+                                </div>
+                                
+                                <div class="purchase-option">
+                                    <div class="option-image">🌹</div>
+                                    <h4>プレミアム花束</h4>
+                                    <p class="price">¥5,800</p>
+                                    <ul class="features">
+                                        <li>✅ 高級花使用</li>
+                                        <li>✅ 特製メッセージカード</li>
+                                        <li>✅ 当日配送可能</li>
+                                        <li>✅ 保存用写真付き</li>
+                                    </ul>
+                                    <button class="purchase-btn" onclick="purchaseBouquet('premium')">
+                                        <span>🛒</span> 注文する
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="delivery-info">
+                                <h4>🚚 配送オプション</h4>
+                                <div class="delivery-options">
+                                    <div class="delivery-option">
+                                        <span class="delivery-icon">🚛</span>
+                                        <span>翌日配送: 無料</span>
+                                    </div>
+                                    <div class="delivery-option">
+                                        <span class="delivery-icon">⚡</span>
+                                        <span>当日配送: +¥500</span>
+                                    </div>
+                                    <div class="delivery-option">
+                                        <span class="delivery-icon">⏰</span>
+                                        <span>時間指定: +¥200</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -151,8 +236,11 @@
                             <button class="action-btn secondary" id="regenerate-btn">
                                 <span>🔄</span> 別の花束を生成
                             </button>
+                            <button class="action-btn secondary" id="share-btn">
+                                <span>📱</span> SNSでシェア
+                            </button>
                             <button class="action-btn primary" id="save-btn">
-                                <span>💾</span> この花束を保存
+                                <span>💾</span> 画像を保存
                             </button>
                         </div>
                     </div>
@@ -177,18 +265,123 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p class="footer-text">
-                Made with <span class="heart">❤️</span> for AI Agent Hackathon with Google Cloud
-            </p>
-            <div class="footer-links">
-                <a href="https://github.com/wwlapaki310/sakisou" target="_blank" rel="noopener">GitHub</a>
-                <span>|</span>
-                <a href="#" onclick="showAbout()">About</a>
+            <div class="footer-content">
+                <p class="footer-text">
+                    Made with <span class="heart">❤️</span> for AI Agent Hackathon with Google Cloud
+                </p>
+                <div class="tech-stack">
+                    <span class="tech-item">Vertex AI Gemini API</span>
+                    <span class="separator">•</span>
+                    <span class="tech-item">Cloud Run functions</span>
+                    <span class="separator">•</span>
+                    <span class="tech-item">Firebase Hosting</span>
+                </div>
+                <div class="footer-links">
+                    <a href="https://github.com/wwlapaki310/sakisou" target="_blank" rel="noopener">GitHub</a>
+                    <span>|</span>
+                    <a href="#" onclick="showAbout()">About</a>
+                    <span>|</span>
+                    <a href="#" onclick="showTechInfo()">Tech Stack</a>
+                </div>
             </div>
         </footer>
     </div>
 
     <!-- Scripts -->
     <script src="app.js"></script>
+    
+    <!-- Purchase Modal -->
+    <div id="purchase-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🛒 花束の注文</h3>
+                <button class="modal-close" onclick="closePurchaseModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>この機能は実際のサービスでは花束販売サイトに連携し、リアルな花束をお届けします。</p>
+                <div class="mock-purchase">
+                    <h4>🌸 ご注文内容</h4>
+                    <div class="order-summary">
+                        <div class="order-item">
+                            <span>商品名:</span>
+                            <span id="order-product">感謝の花束（スタンダード）</span>
+                        </div>
+                        <div class="order-item">
+                            <span>価格:</span>
+                            <span id="order-price">¥3,500</span>
+                        </div>
+                        <div class="order-item">
+                            <span>配送:</span>
+                            <span>翌日配送（無料）</span>
+                        </div>
+                    </div>
+                    <p class="demo-note">
+                        📝 <strong>デモ版</strong>: 実際のサービスでは決済画面に進みます
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" onclick="closePurchaseModal()">キャンセル</button>
+                <button class="modal-btn primary" onclick="completePurchase()">
+                    <span>✅</span> 注文を確定（デモ）
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Purchase functions for demo
+        function purchaseBouquet(type) {
+            const modal = document.getElementById('purchase-modal');
+            const productElement = document.getElementById('order-product');
+            const priceElement = document.getElementById('order-price');
+            
+            if (type === 'premium') {
+                productElement.textContent = '感謝の花束（プレミアム）';
+                priceElement.textContent = '¥5,800';
+            } else {
+                productElement.textContent = '感謝の花束（スタンダード）';
+                priceElement.textContent = '¥3,500';
+            }
+            
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closePurchaseModal() {
+            const modal = document.getElementById('purchase-modal');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        
+        function completePurchase() {
+            closePurchaseModal();
+            showNotification('注文が完了しました！（デモ版）', 'success');
+        }
+        
+        function showTechInfo() {
+            const techInfo = `
+🤖 Google Cloud AI技術スタック
+
+【AI・機械学習】
+• Vertex AI Gemini API - 感情分析・自然言語理解
+• Natural Language Processing - 文脈解析
+
+【アプリケーション基盤】  
+• Cloud Run functions (Firebase Functions) - サーバーレスAPI
+• Firestore Database - 花言葉データ管理
+• Firebase Hosting - Webアプリ配信
+
+【連携サービス】
+• 花束販売API - 購入リンク生成
+• 画像生成AI - プロンプト最適化
+
+このデモでは実際にGoogle Cloud AIが動作し、
+感情分析から花束生成まで完全に自動化されています。
+            `.trim();
+            
+            alert(techInfo);
+        }
+    </script>
 </body>
 </html>
