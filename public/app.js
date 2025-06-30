@@ -1,4 +1,4 @@
-/* 🌸 咲想（sakisou） - Main JavaScript */
+/* 🌸 咲想（sakisou） - Enhanced Main JavaScript for Demo Video */
 
 // ===== Configuration =====
 const CONFIG = {
@@ -17,6 +17,7 @@ const CONFIG = {
   MAX_CHARS: 500,
   TYPING_SPEED: 50,
   ANIMATION_DELAY: 300,
+  LOADING_STEP_DELAY: 1000, // ローディングステップ間の遅延
   
   // デバッグモード
   DEBUG: window.location.hostname === 'localhost'
@@ -42,15 +43,25 @@ const elements = {
   
   emotionsList: document.getElementById('emotions-list'),
   emotionExplanation: document.getElementById('emotion-explanation'),
+  confidenceFill: document.getElementById('confidence-fill'),
+  confidenceScore: document.getElementById('confidence-score'),
   flowersGrid: document.getElementById('flowers-grid'),
   bouquetImage: document.getElementById('bouquet-image'),
+  bouquetTitle: document.getElementById('bouquet-title'),
+  bouquetDescription: document.getElementById('bouquet-description'),
   
   backBtn: document.getElementById('back-btn'),
   shareBtn: document.getElementById('share-btn'),
   regenerateBtn: document.getElementById('regenerate-btn'),
   saveBtn: document.getElementById('save-btn'),
   retryBtn: document.getElementById('retry-btn'),
-  errorMessage: document.getElementById('error-message')
+  errorMessage: document.getElementById('error-message'),
+  
+  // Loading steps
+  step1: document.getElementById('step-1'),
+  step2: document.getElementById('step-2'),
+  step3: document.getElementById('step-3'),
+  step4: document.getElementById('step-4')
 };
 
 // ===== State Management =====
@@ -58,7 +69,8 @@ let currentState = {
   isLoading: false,
   lastAnalysis: null,
   lastBouquet: null,
-  lastMessage: ''
+  lastMessage: '',
+  currentLoadingStep: 0
 };
 
 // ===== Utility Functions =====
@@ -109,15 +121,22 @@ function setLoading(isLoading) {
     elements.generateBtn.disabled = isLoading;
     const btnText = elements.generateBtn.querySelector('.btn-text');
     if (btnText) {
-      btnText.textContent = isLoading ? '変換中...' : '想いを花に変換';
+      btnText.textContent = isLoading ? 'AI分析中...' : 'AIで想いを花束に変換';
     }
+  }
+  
+  if (!isLoading) {
+    currentState.currentLoadingStep = 0;
+    resetLoadingSteps();
   }
   
   debugLog(`Loading state: ${isLoading}`);
 }
 
 function showNotification(message, type = 'info') {
-  // 簡単な通知システム
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.textContent = message;
@@ -132,13 +151,81 @@ function showNotification(message, type = 'info') {
     box-shadow: 0 4px 16px var(--shadow);
     z-index: 1000;
     animation: slideIn 0.3s ease-out;
+    font-weight: 500;
   `;
   
   document.body.appendChild(notification);
   
   setTimeout(() => {
     notification.remove();
-  }, 3000);
+  }, 4000);
+}
+
+// ===== Loading Animation Functions =====
+function resetLoadingSteps() {
+  [elements.step1, elements.step2, elements.step3, elements.step4].forEach(step => {
+    if (step) {
+      step.classList.remove('active', 'completed');
+      const progress = step.querySelector('.step-progress');
+      if (progress) {
+        progress.style.width = '0%';
+      }
+    }
+  });
+}
+
+function activateLoadingStep(stepNumber) {
+  const stepElement = elements[`step${stepNumber}`];
+  if (!stepElement) return;
+  
+  if (stepNumber > 1) {
+    const prevStep = elements[`step${stepNumber - 1}`];
+    if (prevStep) {
+      prevStep.classList.remove('active');
+      prevStep.classList.add('completed');
+      const prevProgress = prevStep.querySelector('.step-progress');
+      if (prevProgress) {
+        prevProgress.style.width = '100%';
+      }
+    }
+  }
+  
+  stepElement.classList.add('active');
+  const progress = stepElement.querySelector('.step-progress');
+  if (progress) {
+    progress.style.width = '0%';
+    setTimeout(() => {
+      progress.style.width = '100%';
+    }, 100);
+  }
+  
+  debugLog(`Loading step ${stepNumber} activated`);
+}
+
+async function runLoadingAnimation() {
+  resetLoadingSteps();
+  
+  activateLoadingStep(1);
+  await new Promise(resolve => setTimeout(resolve, CONFIG.LOADING_STEP_DELAY));
+  
+  activateLoadingStep(2);
+  await new Promise(resolve => setTimeout(resolve, CONFIG.LOADING_STEP_DELAY));
+  
+  activateLoadingStep(3);
+  await new Promise(resolve => setTimeout(resolve, CONFIG.LOADING_STEP_DELAY));
+  
+  activateLoadingStep(4);
+  await new Promise(resolve => setTimeout(resolve, CONFIG.LOADING_STEP_DELAY));
+  
+  const lastStep = elements.step4;
+  if (lastStep) {
+    lastStep.classList.remove('active');
+    lastStep.classList.add('completed');
+    const lastProgress = lastStep.querySelector('.step-progress');
+    if (lastProgress) {
+      lastProgress.style.width = '100%';
+    }
+  }
 }
 
 // ===== API Functions =====
@@ -200,7 +287,6 @@ async function checkAPIHealth() {
 function displayEmotionAnalysis(analysis) {
   if (!analysis) return;
   
-  // 感情タグを表示
   if (elements.emotionsList && analysis.emotions) {
     elements.emotionsList.innerHTML = '';
     
@@ -212,9 +298,22 @@ function displayEmotionAnalysis(analysis) {
     });
   }
   
-  // 説明文を表示
   if (elements.emotionExplanation && analysis.explanation) {
     elements.emotionExplanation.textContent = analysis.explanation;
+  }
+  
+  if (elements.confidenceFill && elements.confidenceScore && analysis.confidence) {
+    const confidence = Math.round(analysis.confidence * 100);
+    elements.confidenceScore.textContent = `${confidence}%`;
+    elements.confidenceFill.style.width = `${confidence}%`;
+    
+    if (confidence >= 80) {
+      elements.confidenceFill.style.background = 'var(--sage-green)';
+    } else if (confidence >= 60) {
+      elements.confidenceFill.style.background = 'var(--hope-orange)';
+    } else {
+      elements.confidenceFill.style.background = 'var(--love-red)';
+    }
   }
 }
 
@@ -228,15 +327,20 @@ function displayFlowers(flowers) {
     flowerCard.className = 'flower-card';
     flowerCard.style.animationDelay = `${index * 0.1}s`;
     
+    const colorsText = flower.colors ? flower.colors.join('・') : '白';
+    
     flowerCard.innerHTML = `
-      <div class="flower-name">${flower.name} (${flower.nameEn})</div>
+      <div class="flower-header">
+        <div class="flower-name">${flower.name}</div>
+        <div class="flower-name-en">${flower.nameEn}</div>
+      </div>
       <div class="flower-meaning">💝 ${flower.meaning}</div>
+      <div class="flower-colors">🎨 ${colorsText}</div>
       <div class="flower-reason">✨ ${flower.reason}</div>
     `;
     
     elements.flowersGrid.appendChild(flowerCard);
     
-    // アニメーション追加
     setTimeout(() => {
       flowerCard.classList.add('bounce-in');
     }, index * 100);
@@ -249,10 +353,20 @@ function displayBouquet(bouquet) {
   elements.bouquetImage.src = bouquet.imageUrl;
   elements.bouquetImage.alt = '生成された花束';
   
-  // 画像読み込み完了時のエフェクト
+  if (elements.bouquetTitle && currentState.lastAnalysis) {
+    const emotions = currentState.lastAnalysis.emotions || [];
+    const primaryEmotion = emotions[0] || 'unknown';
+    const emotionName = getEmotionDisplayName(primaryEmotion);
+    elements.bouquetTitle.textContent = `${emotionName}の花束`;
+  }
+  
+  if (elements.bouquetDescription) {
+    elements.bouquetDescription.textContent = 'あなたの想いを込めた特別な花束が完成しました';
+  }
+  
   elements.bouquetImage.onload = () => {
     elements.bouquetImage.classList.add('fade-in');
-    showNotification('美しい花束が完成しました！', 'success');
+    showNotification('美しい花束が完成しました！🌸', 'success');
   };
   
   elements.bouquetImage.onerror = () => {
@@ -301,20 +415,19 @@ async function processMessage() {
     showSection('loading');
     currentState.lastMessage = message;
     
-    // Step 1: 感情分析
+    const loadingAnimationPromise = runLoadingAnimation();
+    
     debugLog('Starting emotion analysis...');
     const emotionAnalysis = await analyzeEmotion(message);
     currentState.lastAnalysis = emotionAnalysis;
     
-    // ローディングアニメーションのために少し待つ
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Step 2: 花束生成
     debugLog('Starting bouquet generation...');
     const bouquet = await generateBouquet(emotionAnalysis.flowers);
     currentState.lastBouquet = bouquet;
     
-    // 結果表示
+    await loadingAnimationPromise;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     displayEmotionAnalysis(emotionAnalysis);
     displayFlowers(emotionAnalysis.flowers);
     displayBouquet(bouquet);
@@ -356,7 +469,6 @@ async function processMessage() {
 
 // ===== Event Listeners =====
 function initializeEventListeners() {
-  // Message input events
   if (elements.messageInput) {
     elements.messageInput.addEventListener('input', updateCharCount);
     elements.messageInput.addEventListener('keydown', (e) => {
@@ -367,12 +479,10 @@ function initializeEventListeners() {
     });
   }
   
-  // Generate button
   if (elements.generateBtn) {
     elements.generateBtn.addEventListener('click', processMessage);
   }
   
-  // Example tags
   document.querySelectorAll('.example-tag').forEach(tag => {
     tag.addEventListener('click', () => {
       const exampleText = tag.getAttribute('data-text');
@@ -380,7 +490,6 @@ function initializeEventListeners() {
         elements.messageInput.value = exampleText;
         updateCharCount();
         
-        // アニメーション効果
         elements.messageInput.style.background = 'var(--sakura-light)';
         setTimeout(() => {
           elements.messageInput.style.background = '';
@@ -391,7 +500,6 @@ function initializeEventListeners() {
     });
   });
   
-  // Navigation buttons
   if (elements.backBtn) {
     elements.backBtn.addEventListener('click', () => {
       showSection('input');
@@ -406,18 +514,16 @@ function initializeEventListeners() {
     });
   }
   
-  // Action buttons
   if (elements.shareBtn) {
     elements.shareBtn.addEventListener('click', async () => {
       try {
         if (navigator.share && currentState.lastBouquet) {
           await navigator.share({
-            title: '🌸 咲想 - 想いを花に',
+            title: '🌸 咲想 - AIが花言葉で紡ぐ想い',
             text: '私の想いが美しい花束になりました！',
             url: window.location.href
           });
         } else {
-          // フォールバック: URLをコピー
           await navigator.clipboard.writeText(window.location.href);
           showNotification('リンクをコピーしました！', 'success');
         }
@@ -458,17 +564,17 @@ function showAbout() {
   const aboutText = `
 🌸 咲想（sakisou）について
 
-想いを咲かせる、花と共に。
+AIが花言葉で紡ぐ、想いを花束で届けるWebアプリケーション
 
-このアプリは、あなたの気持ちをAIが読み取り、
+このアプリは、あなたの気持ちをGoogle Cloud AIが読み取り、
 それにふさわしい花言葉を持つ花を提案し、
-美しい花束の画像を生成します。
+美しい花束の画像を生成して、実際に購入までできます。
 
 技術スタック:
-• Gemini API（感情分析）
-• Vertex AI（画像生成）
-• Firebase Functions（バックエンド）
+• Vertex AI Gemini API（感情分析）
+• Cloud Run functions（バックエンド）
 • Firebase Hosting（ホスティング）
+• Firestore（データベース）
 
 AI Agent Hackathon with Google Cloud にて開発
   `.trim();
@@ -482,19 +588,11 @@ async function initialize() {
   debugLog('Environment:', CONFIG.DEBUG ? 'Development' : 'Production');
   debugLog('API Base URL:', CONFIG.API_BASE_URL);
   
-  // Initialize event listeners
   initializeEventListeners();
-  
-  // Initialize character count
   updateCharCount();
-  
-  // Show initial section
   showSection('input');
-  
-  // Focus on input
   elements.messageInput?.focus();
   
-  // Health check
   debugLog('Performing health check...');
   const isHealthy = await checkAPIHealth();
   
@@ -516,10 +614,10 @@ async function initialize() {
     }
   } else {
     debugLog('✅ API is healthy');
-    showNotification('咲想へようこそ！想いを花に変換しましょう🌸', 'success');
+    showNotification('🌸 咲想へようこそ！Google Cloud AIで想いを花束に変換しましょう', 'success');
   }
   
-  debugLog('🌸 咲想（sakisou） - Ready!');
+  debugLog('🌸 咲想（sakisou） - Ready for demo!');
 }
 
 // ===== Global Error Handlers =====
@@ -540,24 +638,55 @@ window.addEventListener('unhandledrejection', (e) => {
 // ===== Start the application =====
 document.addEventListener('DOMContentLoaded', initialize);
 
-// ===== Add CSS for notifications =====
-const notificationStyles = document.createElement('style');
-notificationStyles.textContent = `
+// ===== Add CSS for enhanced UI =====
+const enhancedStyles = document.createElement('style');
+enhancedStyles.textContent = `
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+@keyframes bounce-in {
+  0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  50% { transform: scale(1.05) rotate(2deg); }
+  70% { transform: scale(0.9) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
 .notification {
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
   font-weight: 500;
 }
+
 .notification-success { background: var(--sage-green) !important; }
 .notification-warning { background: var(--hope-orange) !important; }
 .notification-error { background: var(--love-red) !important; }
 .notification-info { background: var(--sakura-pink) !important; }
+
+.bounce-in {
+  animation: bounce-in 0.6s ease-out;
+}
+
+.step-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--sakura-pink);
+  transition: width 0.8s ease-out;
+  border-radius: 2px;
+}
+
+.step.active .step-progress {
+  background: var(--hope-orange);
+}
+
+.step.completed .step-progress {
+  background: var(--sage-green);
+}
 `;
-document.head.appendChild(notificationStyles);
+document.head.appendChild(enhancedStyles);
 
 // ===== Export for debugging =====
 if (typeof window !== 'undefined') {
