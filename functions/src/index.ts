@@ -2,11 +2,6 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import express from "express";
 import cors from "cors";
-import {analyzeEmotionHandler} from "./handlers/emotion";
-import {generateBouquetHandler} from "./handlers/bouquet";
-import {getPublicBouquetsHandler} from "./handlers/gallery";
-import {errorHandler} from "./middleware/errorHandler";
-import {rateLimitMiddleware} from "./middleware/rateLimit";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -14,66 +9,89 @@ admin.initializeApp();
 // Create Express app
 const app = express();
 
-// Enhanced CORS middleware for development
-const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5000', 
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5000',
-    'https://sakisou-hackathon.web.app',
-    'https://sakisou-hackathon.firebaseapp.com'
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
+// Simple CORS middleware for development
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Additional CORS headers for preflight
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
-
-// Body parsing middleware
-app.use(express.json({limit: "10mb"}));
-app.use(express.urlencoded({extended: true}));
-
-// Rate limiting (less strict for development)
-if (process.env.NODE_ENV === 'production') {
-  app.use(rateLimitMiddleware);
-}
+// Parse JSON bodies
+app.use(express.json());
 
 // Health check endpoint
 app.get("/health", (req, res) => {
+  console.log("Health check called");
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    version: "1.0.0",
-    cors: "enabled"
+    version: "1.0.0"
   });
 });
 
-// API Routes
-app.post("/api/analyze-emotion", analyzeEmotionHandler);
-app.post("/api/generate-bouquet", generateBouquetHandler);
-app.get("/api/public-bouquets", getPublicBouquetsHandler);
+// Mock emotion analysis for testing
+app.post("/api/analyze-emotion", (req, res) => {
+  console.log("Emotion analysis called with:", req.body);
+  
+  const mockResponse = {
+    emotions: ["gratitude", "appreciation", "warmth"],
+    confidence: 0.85,
+    flowers: [
+      {
+        name: "かすみ草",
+        nameEn: "Baby's Breath",
+        meaning: "清らかな心、感謝",
+        meaningEn: "Pure heart, gratitude",
+        colors: ["white"],
+        season: "all",
+        rarity: "common",
+        reason: "感謝の気持ちを表現するのにぴったりです"
+      },
+      {
+        name: "ピンクのバラ",
+        nameEn: "Pink Rose", 
+        meaning: "感謝、上品",
+        meaningEn: "Gratitude, elegance",
+        colors: ["pink"],
+        season: "all",
+        rarity: "common",
+        reason: "温かい感謝の想いを伝えます"
+      },
+      {
+        name: "ガーベラ",
+        nameEn: "Gerbera",
+        meaning: "希望、常に前進",
+        meaningEn: "Hope, always moving forward",
+        colors: ["yellow", "orange", "pink"],
+        season: "all", 
+        rarity: "common",
+        reason: "前向きな気持ちを表現します"
+      }
+    ],
+    explanation: "あなたのメッセージからは深い感謝と温かい気持ちが感じられます。",
+    emotionId: "test-" + Date.now()
+  };
 
-// Catch all route for debugging
+  res.status(200).json(mockResponse);
+});
+
+// Mock bouquet generation for testing
+app.post("/api/generate-bouquet", (req, res) => {
+  console.log("Bouquet generation called with:", req.body);
+  
+  const mockResponse = {
+    bouquetId: "bouquet-" + Date.now(),
+    imageUrl: "https://via.placeholder.com/400x300/E8B4CB/FFFFFF?text=Beautiful+Bouquet",
+    prompt: "A beautiful bouquet with the selected flowers",
+    flowers: req.body.flowers || [],
+    style: req.body.style || "realistic"
+  };
+
+  res.status(200).json(mockResponse);
+});
+
+// Catch all other routes
 app.use("*", (req, res) => {
-  console.log(`Request to ${req.originalUrl} not found`);
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     error: "Route not found",
     path: req.originalUrl,
@@ -81,39 +99,13 @@ app.use("*", (req, res) => {
   });
 });
 
-// Error handling middleware
-app.use(errorHandler);
-
 // Export the Express app as a Firebase Function
 exports.api = functions
     .region("us-central1")
     .runWith({
-      timeoutSeconds: 300,
-      memory: "1GB",
+      timeoutSeconds: 60,
+      memory: "512MB",
     })
     .https.onRequest(app);
 
-// Cleanup old temporary files (runs daily)
-exports.cleanupTempFiles = functions
-    .region("us-central1")
-    .pubsub.schedule("0 2 * * *")
-    .timeZone("Asia/Tokyo")
-    .onRun(async (context) => {
-      const bucket = admin.storage().bucket();
-      const [files] = await bucket.getFiles({
-        prefix: "temp/",
-      });
-
-      const cutoffDate = new Date();
-      cutoffDate.setHours(cutoffDate.getHours() - 24); // 24 hours ago
-
-      const deletePromises = files
-          .filter((file) => {
-            const created = new Date(file.metadata.timeCreated!);
-            return created < cutoffDate;
-          })
-          .map((file) => file.delete());
-
-      await Promise.all(deletePromises);
-      console.log(`Cleaned up ${deletePromises.length} temporary files`);
-    });
+console.log("Firebase Functions loaded successfully");
