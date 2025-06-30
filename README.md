@@ -42,7 +42,6 @@
 ```bash
 git clone https://github.com/wwlapaki310/sakisou.git
 cd sakisou
-git checkout simple-web-refactor
 ```
 
 ### 2. Firebase Emulator を起動
@@ -190,6 +189,14 @@ firebase functions:config:set vertex.project_id="YOUR_PROJECT_ID"
 - 🎯 **パーソナライゼーション** : ユーザー学習機能
 - 🛍️ **EC連携** : 実際の花ギフト購入
 - 🎨 **AR対応** : 花束のAR表示
+
+## 📂 プロジェクト構成
+
+### 現在のmainブランチ
+HTML/CSS/JavaScriptベースのシンプル構成
+
+### バックアップブランチ
+- `flutter-backup` : Flutter版のバックアップ
 
 ---
 
