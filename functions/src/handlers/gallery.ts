@@ -4,6 +4,11 @@ import {PublicBouquetsRequest, PublicBouquetsResponse, GeneratedBouquet} from ".
 import {AppError} from "../types";
 import {asyncHandler} from "../middleware/errorHandler";
 
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 
 /**
