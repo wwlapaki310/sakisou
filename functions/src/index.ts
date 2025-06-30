@@ -2,9 +2,18 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import express from "express";
 import cors from "cors";
+import { VertexAI } from '@google-cloud/vertexai';
 
 // Initialize Firebase Admin
 admin.initializeApp();
+
+// Initialize Vertex AI
+const project = process.env.GOOGLE_CLOUD_PROJECT || 'sakisou-dev';
+const location = 'us-central1';
+const vertexAI = new VertexAI({ project, location });
+
+// Initialize Gemini model
+const model = 'gemini-1.5-flash-001';
 
 // Create Express app
 const app = express();
@@ -37,13 +46,99 @@ app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    version: "2.0.0",
-    environment: process.env.NODE_ENV || "development"
+    version: "3.0.0",
+    environment: process.env.NODE_ENV || "development",
+    ai_provider: "Google Cloud Vertex AI",
+    model: model
   });
 });
 
-// Enhanced emotion analysis with better mock data
-app.post("/api/analyze-emotion", (req, res) => {
+// Flower language database
+const flowerDatabase = [
+  {
+    name: "かすみ草",
+    nameEn: "Baby's Breath",
+    meaning: "清らかな心、感謝",
+    meaningEn: "Pure heart, gratitude",
+    colors: ["white"],
+    season: "all",
+    rarity: "common",
+    emotions: ["gratitude", "purity", "appreciation"]
+  },
+  {
+    name: "ピンクのバラ",
+    nameEn: "Pink Rose", 
+    meaning: "感謝、上品",
+    meaningEn: "Gratitude, elegance",
+    colors: ["pink"],
+    season: "all",
+    rarity: "common",
+    emotions: ["gratitude", "love", "appreciation"]
+  },
+  {
+    name: "ガーベラ",
+    nameEn: "Gerbera",
+    meaning: "希望、常に前進",
+    meaningEn: "Hope, always moving forward",
+    colors: ["yellow", "orange", "pink"],
+    season: "all", 
+    rarity: "common",
+    emotions: ["hope", "encouragement", "optimism"]
+  },
+  {
+    name: "ひまわり",
+    nameEn: "Sunflower",
+    meaning: "憧れ、あなただけを見つめる",
+    meaningEn: "Admiration, looking only at you",
+    colors: ["yellow"],
+    season: "summer",
+    rarity: "common",
+    emotions: ["admiration", "loyalty", "encouragement"]
+  },
+  {
+    name: "白いユリ",
+    nameEn: "White Lily",
+    meaning: "純潔、威厳、心からの謝罪",
+    meaningEn: "Purity, dignity, sincere apology",
+    colors: ["white"],
+    season: "spring",
+    rarity: "common",
+    emotions: ["apology", "purity", "sincerity"]
+  },
+  {
+    name: "忘れな草",
+    nameEn: "Forget-me-not",
+    meaning: "真実の愛、私を忘れないで",
+    meaningEn: "True love, don't forget me",
+    colors: ["blue"],
+    season: "spring",
+    rarity: "common",
+    emotions: ["remembrance", "true_love", "longing"]
+  },
+  {
+    name: "白いカーネーション",
+    nameEn: "White Carnation",
+    meaning: "純粋な愛、尊敬",
+    meaningEn: "Pure love, respect",
+    colors: ["white"],
+    season: "all",
+    rarity: "common",
+    emotions: ["respect", "pure_love", "admiration"]
+  },
+  {
+    name: "アルストロメリア",
+    nameEn: "Alstroemeria",
+    meaning: "持続する友情、エール",
+    meaningEn: "Lasting friendship, encouragement",
+    colors: ["pink", "yellow", "white"],
+    season: "all",
+    rarity: "common",
+    emotions: ["friendship", "encouragement", "support"]
+  }
+];
+
+// Enhanced emotion analysis using Vertex AI Gemini
+app.post("/api/analyze-emotion", async (req, res) => {
   try {
     console.log("Emotion analysis called with:", req.body);
     
@@ -56,153 +151,128 @@ app.post("/api/analyze-emotion", (req, res) => {
       });
     }
 
-    // Enhanced mock response with multiple emotion patterns
-    const emotionPatterns = [
-      {
-        keywords: ['ありがとう', '感謝', 'ありがた'],
-        emotions: ["gratitude", "appreciation", "warmth"],
-        flowers: [
-          {
-            name: "かすみ草",
-            nameEn: "Baby's Breath",
-            meaning: "清らかな心、感謝",
-            meaningEn: "Pure heart, gratitude",
-            colors: ["white"],
-            season: "all",
-            rarity: "common",
-            reason: "感謝の気持ちを表現するのにぴったりです"
-          },
-          {
-            name: "ピンクのバラ",
-            nameEn: "Pink Rose", 
-            meaning: "感謝、上品",
-            meaningEn: "Gratitude, elegance",
-            colors: ["pink"],
-            season: "all",
-            rarity: "common",
-            reason: "温かい感謝の想いを伝えます"
-          },
-          {
-            name: "ガーベラ",
-            nameEn: "Gerbera",
-            meaning: "希望、常に前進",
-            meaningEn: "Hope, always moving forward",
-            colors: ["yellow", "orange", "pink"],
-            season: "all", 
-            rarity: "common",
-            reason: "前向きな気持ちを表現します"
-          }
-        ],
-        explanation: "あなたのメッセージからは深い感謝と温かい気持ちが感じられます。"
+    // Create Gemini model instance
+    const generativeModel = vertexAI.preview.getGenerativeModel({
+      model: model,
+      generationConfig: {
+        maxOutputTokens: 1000,
+        temperature: 0.7,
       },
-      {
-        keywords: ['頑張', 'がんば', '応援', 'できる'],
-        emotions: ["encouragement", "support", "hope"],
-        flowers: [
-          {
-            name: "ひまわり",
-            nameEn: "Sunflower",
-            meaning: "憧れ、あなただけを見つめる",
-            meaningEn: "Admiration, looking only at you",
-            colors: ["yellow"],
-            season: "summer",
-            rarity: "common",
-            reason: "力強い応援の気持ちを表現します"
-          },
-          {
-            name: "ガーベラ",
-            nameEn: "Gerbera", 
-            meaning: "希望、常に前進",
-            meaningEn: "Hope, always moving forward",
-            colors: ["orange", "yellow"],
-            season: "all",
-            rarity: "common",
-            reason: "前向きなエネルギーを込めて"
-          },
-          {
-            name: "アルストロメリア",
-            nameEn: "Alstroemeria",
-            meaning: "持続する友情、エール",
-            meaningEn: "Lasting friendship, encouragement",
-            colors: ["pink", "yellow", "white"],
-            season: "all",
-            rarity: "common",
-            reason: "継続的な応援の想いを表現します"
-          }
-        ],
-        explanation: "あなたの応援メッセージには強い希望と支援の気持ちが込められています。"
-      },
-      {
-        keywords: ['ごめん', '申し訳', '反省', '謝'],
-        emotions: ["apology", "regret", "sincerity"],
-        flowers: [
-          {
-            name: "白いユリ",
-            nameEn: "White Lily",
-            meaning: "純潔、威厳、心からの謝罪",
-            meaningEn: "Purity, dignity, sincere apology",
-            colors: ["white"],
-            season: "spring",
-            rarity: "common",
-            reason: "真摯な謝罪の気持ちを表現します"
-          },
-          {
-            name: "忘れな草",
-            nameEn: "Forget-me-not",
-            meaning: "真実の愛、私を忘れないで",
-            meaningEn: "True love, don't forget me",
-            colors: ["blue"],
-            season: "spring",
-            rarity: "common",
-            reason: "関係を大切にしたい想いを込めて"
-          },
-          {
-            name: "白いカーネーション",
-            nameEn: "White Carnation",
-            meaning: "純粋な愛、尊敬",
-            meaningEn: "Pure love, respect",
-            colors: ["white"],
-            season: "all",
-            rarity: "common",
-            reason: "純粋な心からの謝罪を表現します"
-          }
-        ],
-        explanation: "あなたのメッセージからは真摯な反省と謝罪の気持ちが伝わってきます。"
-      }
-    ];
+    });
 
-    // Find matching pattern
-    let selectedPattern = emotionPatterns[0]; // default to gratitude
-    const lowerMessage = message.toLowerCase();
+    // Create prompt for emotion analysis
+    const prompt = `
+あなたは感情分析と花言葉のエキスパートです。以下のメッセージを分析し、適切な花言葉を提案してください。
+
+メッセージ: "${message}"
+
+以下の形式でJSONレスポンスを返してください：
+{
+  "emotions": ["感情1", "感情2", "感情3"],
+  "confidence": 0.0-1.0の信頼度,
+  "explanation": "感情分析の説明（日本語、100文字程度）",
+  "flowerSuggestions": ["flower1", "flower2", "flower3"]
+}
+
+感情の種類: gratitude(感謝), love(愛), apology(謝罪), encouragement(応援), hope(希望), friendship(友情), admiration(憧れ), support(支援), joy(喜び), sadness(悲しみ), remembrance(思い出), purity(純粋), respect(尊敬)
+
+花の種類: かすみ草, ピンクのバラ, ガーベラ, ひまわり, 白いユリ, 忘れな草, 白いカーネーション, アルストロメリア
+`;
+
+    // Call Vertex AI Gemini API
+    const result = await generativeModel.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
     
-    for (const pattern of emotionPatterns) {
-      if (pattern.keywords.some(keyword => lowerMessage.includes(keyword))) {
-        selectedPattern = pattern;
-        break;
+    console.log("Gemini API response:", text);
+
+    // Parse the JSON response
+    let aiAnalysis;
+    try {
+      // Extract JSON from the response (handle potential markdown formatting)
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        aiAnalysis = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error("No JSON found in response");
       }
+    } catch (parseError) {
+      console.warn("Failed to parse AI response, using fallback:", parseError);
+      // Fallback analysis
+      aiAnalysis = {
+        emotions: ["gratitude"],
+        confidence: 0.7,
+        explanation: "メッセージからポジティブな感情が感じられます。",
+        flowerSuggestions: ["かすみ草", "ピンクのバラ", "ガーベラ"]
+      };
     }
 
-    const mockResponse = {
-      emotions: selectedPattern.emotions,
-      confidence: 0.85,
-      flowers: selectedPattern.flowers,
-      explanation: selectedPattern.explanation,
+    // Match flowers from database
+    const matchedFlowers = flowerDatabase.filter(flower => 
+      aiAnalysis.flowerSuggestions?.some(suggestion => 
+        flower.name.includes(suggestion) || flower.nameEn.toLowerCase().includes(suggestion.toLowerCase())
+      )
+    );
+
+    // If no matches, use flowers that match detected emotions
+    let finalFlowers = matchedFlowers;
+    if (finalFlowers.length === 0) {
+      finalFlowers = flowerDatabase.filter(flower =>
+        flower.emotions.some(emotion => aiAnalysis.emotions.includes(emotion))
+      ).slice(0, 3);
+    }
+
+    // Ensure we have at least 3 flowers
+    if (finalFlowers.length < 3) {
+      const remainingFlowers = flowerDatabase.filter(flower => 
+        !finalFlowers.some(f => f.name === flower.name)
+      );
+      finalFlowers = [...finalFlowers, ...remainingFlowers].slice(0, 3);
+    }
+
+    // Add reasoning for each flower
+    const flowersWithReason = finalFlowers.map(flower => ({
+      ...flower,
+      reason: `${aiAnalysis.explanation}この感情に${flower.name}がぴったりです。`
+    }));
+
+    const response_data = {
+      emotions: aiAnalysis.emotions || ["gratitude"],
+      confidence: aiAnalysis.confidence || 0.8,
+      flowers: flowersWithReason,
+      explanation: aiAnalysis.explanation || "あなたのメッセージから温かい気持ちが感じられます。",
       emotionId: "analysis-" + Date.now(),
-      processedAt: new Date().toISOString()
+      processedAt: new Date().toISOString(),
+      aiProvider: "Google Cloud Vertex AI",
+      model: model
     };
 
-    res.status(200).json(mockResponse);
+    res.status(200).json(response_data);
   } catch (error) {
     console.error("Error in emotion analysis:", error);
-    res.status(500).json({
-      error: "感情分析中にエラーが発生しました",
-      code: "ANALYSIS_ERROR"
+    
+    // Fallback response in case of AI API failure
+    const fallbackFlowers = flowerDatabase.slice(0, 3).map(flower => ({
+      ...flower,
+      reason: "メッセージから温かい気持ちが感じられます。"
+    }));
+
+    res.status(200).json({
+      emotions: ["gratitude"],
+      confidence: 0.7,
+      flowers: fallbackFlowers,
+      explanation: "あなたのメッセージから温かい気持ちが感じられます。",
+      emotionId: "analysis-fallback-" + Date.now(),
+      processedAt: new Date().toISOString(),
+      aiProvider: "Google Cloud Vertex AI (Fallback)",
+      model: model,
+      note: "AI分析でエラーが発生したため、デフォルトの分析結果を返しています。"
     });
   }
 });
 
-// Enhanced bouquet generation with better mock images
-app.post("/api/generate-bouquet", (req, res) => {
+// Enhanced bouquet generation using Vertex AI for image generation prompts
+app.post("/api/generate-bouquet", async (req, res) => {
   try {
     console.log("Bouquet generation called with:", req.body);
     
@@ -215,7 +285,47 @@ app.post("/api/generate-bouquet", (req, res) => {
       });
     }
 
-    // Better mock images based on flower types
+    // Create Gemini model instance for prompt optimization
+    const generativeModel = vertexAI.preview.getGenerativeModel({
+      model: model,
+      generationConfig: {
+        maxOutputTokens: 500,
+        temperature: 0.8,
+      },
+    });
+
+    // Create flower description
+    const flowerNames = flowers.map(f => f.name || f.nameEn).join(', ');
+    const flowerColors = [...new Set(flowers.flatMap(f => f.colors))].join(', ');
+    const flowerMeanings = flowers.map(f => f.meaning).join(', ');
+
+    // Generate optimized image prompt using Gemini
+    const promptGenerationPrompt = `
+花束の画像生成用プロンプトを作成してください。
+
+花の種類: ${flowerNames}
+花の色: ${flowerColors}
+花言葉: ${flowerMeanings}
+スタイル: ${style}
+
+以下の形式で英語のプロンプトを生成してください：
+"A beautiful bouquet of [flowers] in [colors], arranged in [style] style, professional photography, high quality, detailed, soft lighting"
+
+プロンプトのみを返してください（説明不要）。
+`;
+
+    let optimizedPrompt;
+    try {
+      const promptResult = await generativeModel.generateContent(promptGenerationPrompt);
+      const promptResponse = await promptResult.response;
+      optimizedPrompt = promptResponse.text().trim().replace(/"/g, '');
+    } catch (error) {
+      console.warn("Failed to generate optimized prompt, using default:", error);
+      optimizedPrompt = `A beautiful bouquet of ${flowerNames} in ${flowerColors} colors, arranged in ${style} style, professional photography, high quality`;
+    }
+
+    // Use high-quality stock images as placeholders
+    // In a real implementation, you would call an image generation API here
     const mockImages = [
       "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=500&h=400&fit=crop&crop=center", // Pink roses bouquet
       "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=500&h=400&fit=crop&crop=center", // Mixed flower bouquet
@@ -224,7 +334,7 @@ app.post("/api/generate-bouquet", (req, res) => {
       "https://images.unsplash.com/photo-1606923829579-0cb981a83e2e?w=500&h=400&fit=crop&crop=center"  // Colorful bouquet
     ];
 
-    // Select image based on flower colors
+    // Select image based on flower characteristics
     let selectedImage = mockImages[0];
     const primaryColors = flowers[0]?.colors || ["pink"];
     
@@ -238,24 +348,25 @@ app.post("/api/generate-bouquet", (req, res) => {
       selectedImage = mockImages[Math.floor(Math.random() * mockImages.length)];
     }
 
-    const flowerNames = flowers.map(f => f.name || f.nameEn).join(', ');
-
-    const mockResponse = {
+    const response_data = {
       bouquetId: "bouquet-" + Date.now(),
       imageUrl: selectedImage,
-      prompt: `Beautiful bouquet with ${flowerNames} in ${style} style`,
+      prompt: optimizedPrompt,
       flowers: flowers,
       style: style,
       generatedAt: new Date().toISOString(),
+      aiProvider: "Google Cloud Vertex AI",
+      model: model,
       metadata: {
         width: 500,
         height: 400,
         format: "jpeg",
-        source: "unsplash"
+        source: "unsplash",
+        note: "Image generation using Vertex AI (currently using stock photos as placeholder)"
       }
     };
 
-    res.status(200).json(mockResponse);
+    res.status(200).json(response_data);
   } catch (error) {
     console.error("Error in bouquet generation:", error);
     res.status(500).json({
@@ -289,7 +400,7 @@ app.use("*", (req, res) => {
   });
 });
 
-// Export the Express app as a Firebase Function
+// Export the Express app as a Firebase Function (Cloud Run functions)
 exports.api = functions
     .region("us-central1")
     .runWith({
@@ -298,4 +409,4 @@ exports.api = functions
     })
     .https.onRequest(app);
 
-console.log("🌸 Sakisou Firebase Functions loaded successfully");
+console.log("🌸 Sakisou Firebase Functions with Google Cloud Vertex AI loaded successfully");
