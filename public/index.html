@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 咲想（sakisou） - 想いを花に</title>
+    <meta name="description" content="あなたの想いをAIが読み取り、花言葉を持つ美しい花束に変換します">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Floating petals background -->
+    <div class="petals-container">
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+    </div>
+    
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🌸</span>
+                <h1 class="logo-text">咲想</h1>
+                <span class="logo-subtitle">sakisou</span>
+            </div>
+            <p class="tagline">想いを咲かせる、花と共に</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section" id="input-section">
+                <div class="input-container">
+                    <h2 class="section-title">あなたの想いを聞かせてください</h2>
+                    <p class="section-description">
+                        AIがあなたの気持ちを読み取り、<br>
+                        最適な花言葉を持つ花束を生成します
+                    </p>
+                    
+                    <div class="textarea-container">
+                        <textarea 
+                            id="message-input" 
+                            placeholder="例：&#10;・ありがとう、支えてくれて&#10;・頑張って、応援しています&#10;・ごめんなさい、反省しています&#10;・お疲れさまでした"
+                            rows="5"
+                        ></textarea>
+                        <div class="char-count">
+                            <span id="char-count">0</span> / 500
+                        </div>
+                    </div>
+                    
+                    <button class="generate-btn" id="generate-btn">
+                        <span class="btn-icon">🌸</span>
+                        <span class="btn-text">想いを花に変換</span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                    
+                    <div class="examples">
+                        <p class="examples-title">💡 こんな想いを花に変換できます</p>
+                        <div class="example-tags">
+                            <span class="example-tag" data-text="長い間支えてくれて、本当にありがとう">感謝</span>
+                            <span class="example-tag" data-text="頑張って！あなたなら必ずできる">応援</span>
+                            <span class="example-tag" data-text="ごめんなさい、心から反省しています">謝罪</span>
+                            <span class="example-tag" data-text="あなたに出会えて良かった">愛情</span>
+                            <span class="example-tag" data-text="お疲れさまでした">労い</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Section -->
+            <section class="loading-section" id="loading-section" style="display: none;">
+                <div class="loading-container">
+                    <div class="loading-flower">
+                        <div class="petal petal-1"></div>
+                        <div class="petal petal-2"></div>
+                        <div class="petal petal-3"></div>
+                        <div class="petal petal-4"></div>
+                        <div class="petal petal-5"></div>
+                        <div class="center"></div>
+                    </div>
+                    <h3 class="loading-title">想いを花に変換しています</h3>
+                    <p class="loading-subtitle">AIがあなたの気持ちを分析中...</p>
+                    <div class="loading-steps">
+                        <div class="step step-1">
+                            <span class="step-icon">🧠</span>
+                            <span class="step-text">感情を分析</span>
+                        </div>
+                        <div class="step step-2">
+                            <span class="step-icon">🌸</span>
+                            <span class="step-text">花言葉をマッチング</span>
+                        </div>
+                        <div class="step step-3">
+                            <span class="step-icon">🎨</span>
+                            <span class="step-text">花束を生成</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Result Section -->
+            <section class="result-section" id="result-section" style="display: none;">
+                <div class="result-container">
+                    <button class="back-btn" id="back-btn">
+                        <span>← 新しい想いを入力</span>
+                    </button>
+                    
+                    <h2 class="result-title">あなたの想いが花に咲きました</h2>
+                    
+                    <div class="result-content">
+                        <!-- Emotion Analysis -->
+                        <div class="emotion-analysis">
+                            <h3>💭 分析された感情</h3>
+                            <div class="emotions-list" id="emotions-list"></div>
+                            <p class="emotion-explanation" id="emotion-explanation"></p>
+                        </div>
+
+                        <!-- Selected Flowers -->
+                        <div class="flowers-section">
+                            <h3>🌸 選ばれた花たち</h3>
+                            <div class="flowers-grid" id="flowers-grid"></div>
+                        </div>
+
+                        <!-- Generated Bouquet -->
+                        <div class="bouquet-section">
+                            <h3>🎨 生成された花束</h3>
+                            <div class="bouquet-container">
+                                <img id="bouquet-image" class="bouquet-image" alt="生成された花束">
+                                <div class="bouquet-overlay">
+                                    <button class="share-btn" id="share-btn">
+                                        <span>📱</span> シェアする
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <button class="action-btn secondary" id="regenerate-btn">
+                                <span>🔄</span> 別の花束を生成
+                            </button>
+                            <button class="action-btn primary" id="save-btn">
+                                <span>💾</span> この花束を保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section class="error-section" id="error-section" style="display: none;">
+                <div class="error-container">
+                    <div class="error-icon">😔</div>
+                    <h3 class="error-title">申し訳ございません</h3>
+                    <p class="error-message" id="error-message">
+                        想いを花に変換できませんでした。<br>
+                        しばらく時間をおいて、再度お試しください。
+                    </p>
+                    <button class="retry-btn" id="retry-btn">
+                        <span>🔄</span> もう一度試す
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-text">
+                Made with <span class="heart">❤️</span> for AI Agent Hackathon with Google Cloud
+            </p>
+            <div class="footer-links">
+                <a href="https://github.com/wwlapaki310/sakisou" target="_blank" rel="noopener">GitHub</a>
+                <span>|</span>
+                <a href="#" onclick="showAbout()">About</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
