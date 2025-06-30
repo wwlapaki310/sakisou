@@ -116,7 +116,6 @@ firestore-debug.log
 
 # Firebase Functions
 functions/lib/
-functions/.env
 
 # IDE
 .vscode/

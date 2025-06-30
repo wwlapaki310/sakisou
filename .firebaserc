@@ -1,3 +1,8 @@
 {
+  "projects": {
+    "default": "sakisou-hackathon"
+  },
+  "targets": {},
+  "etags": {},
   "default": "sakisou-dev"
 }
