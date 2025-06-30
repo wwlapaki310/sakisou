@@ -14,10 +14,47 @@ admin.initializeApp();
 // Create Express app
 const app = express();
 
-// Middleware
-app.use(cors({origin: true}));
+// Enhanced CORS middleware for development
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5000', 
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5000',
+    'https://sakisou-hackathon.web.app',
+    'https://sakisou-hackathon.firebaseapp.com'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Additional CORS headers for preflight
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+// Body parsing middleware
 app.use(express.json({limit: "10mb"}));
-app.use(rateLimitMiddleware);
+app.use(express.urlencoded({extended: true}));
+
+// Rate limiting (less strict for development)
+if (process.env.NODE_ENV === 'production') {
+  app.use(rateLimitMiddleware);
+}
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -25,6 +62,7 @@ app.get("/health", (req, res) => {
     status: "healthy",
     timestamp: new Date().toISOString(),
     version: "1.0.0",
+    cors: "enabled"
   });
 });
 
@@ -32,6 +70,16 @@ app.get("/health", (req, res) => {
 app.post("/api/analyze-emotion", analyzeEmotionHandler);
 app.post("/api/generate-bouquet", generateBouquetHandler);
 app.get("/api/public-bouquets", getPublicBouquetsHandler);
+
+// Catch all route for debugging
+app.use("*", (req, res) => {
+  console.log(`Request to ${req.originalUrl} not found`);
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+    method: req.method
+  });
+});
 
 // Error handling middleware
 app.use(errorHandler);
