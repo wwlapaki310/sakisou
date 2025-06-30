@@ -7,6 +7,11 @@ import {asyncHandler} from "../middleware/errorHandler";
 import {v4 as uuidv4} from "uuid";
 import {z} from "zod";
 
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 
 // Validation schema
